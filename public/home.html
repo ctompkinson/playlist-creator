@@ -24,14 +24,14 @@
                                 Tools
                             </button>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item" href="/public/followers_playlist.html">Followed Artists Playlist</a>
+                                <a class="dropdown-item" href="/tool/follow-playlist">Followed Artists Playlist</a>
                             </div>
                         </div>
                         <li class="nav-item">
-                            <a class="nav-link" href="/public/about.html">About</a>
+                            <a class="nav-link" href="/about">About</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active btn-success" href="#" id="logout">Log Out</a>
+                            <a class="nav-link active btn-success" href="#" id="login">Log Out</a>
                         </li>
                     </ul>
                 </nav>
@@ -55,10 +55,20 @@
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
     <script>
         (function() {
-            document.getElementById('logout').addEventListener('click', function () {
-                Cookies.set("access_token", "", { expires: -1 });
-                document.location.href = '/';
-            });
+            if (Cookies.get("access_token") === undefined) {
+                console.log('Setting as login');
+                $('#login').text("Log In");
+                document.getElementById('login').addEventListener('click', function () {
+                    window.location.replace("/login");
+                })
+            } else {
+                console.log('Setting as logout');
+                $('#login').text("Log Out");
+                document.getElementById('login').addEventListener('click', function () {
+                    Cookies.set("access_token", "", { expires: -1 });
+                    window.location.replace("/");
+                })
+            }
         })();
     </script>
 </body>

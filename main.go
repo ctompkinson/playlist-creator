@@ -30,7 +30,10 @@ func main() {
 	http.HandleFunc("/", handleMain)
 	http.HandleFunc("/login", handleSpotifyLogin)
 	http.HandleFunc("/callback", handleSpotifyCallback)
-	http.HandleFunc("/generate_playlist", handleGenerateFollowersPlaylist)
+	http.HandleFunc("/tool/follow-playlist", handleFollowersPlaylist)
+	http.HandleFunc("/tool/follow-playlist/generate", handleGenerateFollowersPlaylist)
+
+
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
 	fmt.Println("Listening on 0.0.0.0:80")
@@ -93,6 +96,16 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
+func handleFollowersPlaylist(w http.ResponseWriter, r *http.Request) {
+	_, err := r.Cookie("access_token")
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	http.ServeFile(w, r, "./public/followers_playlist.html")
 }
 
 func handleGenerateFollowersPlaylist(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +181,7 @@ func handleGenerateFollowersPlaylist(w http.ResponseWriter, r *http.Request) {
 		trackIDs = append(trackIDs, track.ID)
 	}
 
-	if reqValues[""] == "on" {
+	if reqValues["shuffle"] == "on" {
 		ShuffleTrackIds(trackIDs)
 	}
 
