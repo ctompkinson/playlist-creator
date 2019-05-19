@@ -30,6 +30,7 @@ func main() {
 	http.HandleFunc("/", handleMain)
 	http.HandleFunc("/login", handleSpotifyLogin)
 	http.HandleFunc("/callback", handleSpotifyCallback)
+	http.HandleFunc("/about", handleAbout)
 	http.HandleFunc("/tool/follow-playlist", handleFollowersPlaylist)
 	http.HandleFunc("/tool/follow-playlist/generate", handleGenerateFollowersPlaylist)
 
@@ -96,6 +97,16 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
+func handleAbout(w http.ResponseWriter, r *http.Request) {
+	_, err := r.Cookie("access_token")
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	http.ServeFile(w, r, "./public/about.html")
 }
 
 func handleFollowersPlaylist(w http.ResponseWriter, r *http.Request) {
