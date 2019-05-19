@@ -41,6 +41,7 @@
 
         <div class="container">
             <h3 id="message">Please choose a playlist tool</h3>
+            <a href="/tool/follow-playlist" id="follow-artist-playlist-link">Followed Artists Playlist</a>
         </div>
     </div>
 
@@ -58,6 +59,7 @@
             if (Cookies.get("access_token") === undefined) {
                 $('#login').text("Log In");
                 $('#message').text("Please log in");
+                $('#follow-artist-playlist-link').prop('hidden', true);
                 document.getElementById('login').addEventListener('click', function () {
                     window.location.replace("/login");
                 })
