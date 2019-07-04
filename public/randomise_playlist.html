@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="/public/narrow-jumbotron.css">
+    <link rel="stylesheet" href="/public/style.css">
+    <link rel="stylesheet" href="/public/shuffle_playlist_style.css">
+
+    <title>Playlist Tools</title>
+
+</head>
+<body>
+    <div id="container">
+
+
+        <div class="container">
+            <div class="header clearfix">
+                <nav>
+                    <ul class="nav nav-pills float-right">
+                        <!-- Drop Down -->
+                        <div class="dropdown nav-item">
+                            <button class="nav-link btn" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Tools
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="/tool/follow-playlist">Followed Artists Playlist</a>
+                            </div>
+                        </div>
+
+                        <!-- About -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="/about">About</a>
+                        </li>
+
+                        <!-- Log In -->
+                        <li class="nav-item">
+                            <a class="nav-link active btn-success" href="#" id="login">Log Out</a>
+                        </li>
+                    </ul>
+                </nav>
+                <h3 class="text-muted">Spotify Playlist Creator</h3>
+            </div>
+        </div>
+
+        <div class="container full-form">
+            <form id="shuffle-playlist-form" class="form-horizontal">
+                <fieldset>
+                    <p class="h4 mb-4 text-center">Choose Playlists to Shuffle</p>
+                    <div class="form-group sticky-container">
+                        <div class="sticky-button">
+                            <button class="btn btn-success" id="shuffle-button" hidden="true" onsubmit="function f(){return false}">Shuffle</button>
+                        </div>
+                        <ul id="playlist-list">
+
+                        </ul>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+
+        <div>
+            <div class="spinner-border text-success" role="status" hidden="true" id="loading-spinner">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.0/dist/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+    <script src="/public/scripts/login_redirect.js"></script>
+    <script>
+        let selected_playlists = [];
+
+        $.ajax({
+            url: '/list-playlists',
+            type: 'GET'
+        }).done(function(data) {
+            $('#shuffle-button').prop('hidden', false);
+            JSON.parse(data).forEach(function(d) {
+                $('#playlist-list').append(`
+                    <li class="playlist-tile" data-internalid="${d.id}" id="${d.id}">
+                        <!--<div class="playlist-title">${d.name}</div>-->
+                        <div>
+                            <span class="checkmark" hidden="true">
+                                <div class="checkmark_circle"></div>
+                                <div class="checkmark_stem"></div>
+                                <div class="checkmark_kick"></div>
+                            </span>
+                            <img class="playlist-img" draggable="false" width=300 height=300 src="${d.images[0].url}"/>
+                        </div>
+                    </li>
+                `);
+
+                $(`#${d.id}`).click(function() {
+                    var e = $(`#${d.id}`);
+                    var checkmark = $(`#${d.id} .checkmark`);
+
+                    if (checkmark.prop('hidden') === true) {
+                        selected_playlists.push(`${d.id}`);
+                        checkmark.prop('hidden', false);
+                    } else {
+                        selected_playlists.forEach(function(item, index) {
+                            if (item === `${d.id}`) {
+                                selected_playlists.splice(index, 1);
+                            }
+                            checkmark.prop('hidden', true);
+                        })
+                    }
+                });
+            })
+        })
+
+        $(`#shuffle-button`).click(function(e) {
+            e.preventDefault();
+            $(`#shuffle-playlist-form`).prop('hidden', true);
+            $(`#loading-spinner`).prop('hidden', false);
+
+            $.ajax({
+                url: '/tools/shuffle-playlist',
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json;charset=UTF-8',
+                data: JSON.stringify(selected_playlists)
+            }).done(function(data) {
+                $('#loading-spinner').prop('hidden', true);
+                $('#shuffle-status').textContent = data.message;
+            })
+        })
+    </script>
+</body>
+</html>

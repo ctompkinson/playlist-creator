@@ -24,6 +24,12 @@ type statusResponse struct {
 	Message string `json:"message"`
 }
 
+type PlaylistInfo struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Images []spotify.Image `json:"images"`
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
@@ -33,6 +39,11 @@ func main() {
 	http.HandleFunc("/about", handleAbout)
 	http.HandleFunc("/tool/follow-playlist", handleFollowersPlaylist)
 	http.HandleFunc("/tool/follow-playlist/generate", handleGenerateFollowersPlaylist)
+
+	http.HandleFunc("/tool/shuffle-playlist", handleRandomizePlaylistTool)
+	http.HandleFunc("/tool/shuffle-playlist/generate", handleRandomizePlaylistTool)
+
+	http.HandleFunc("/list-playlists", handleListPlaylist)
 
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
@@ -54,12 +65,6 @@ func init() {
 // Http handlers
 
 func handleMain(w http.ResponseWriter, r *http.Request) {
-	_, err := r.Cookie("access_token")
-	if err != nil {
-		http.ServeFile(w, r, "./public/login.html")
-		return
-	}
-
 	http.ServeFile(w, r, "./public/home.html")
 }
 
@@ -214,6 +219,99 @@ func handleGenerateFollowersPlaylist(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+func handleRandomizePlaylistTool(w http.ResponseWriter, r *http.Request) {
+	_, err := r.Cookie("access_token")
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	http.ServeFile(w, r, "./public/randomise_playlist.html")
+}
+
+func handleListPlaylist(w http.ResponseWriter, r *http.Request) {
+	accessToken, err := r.Cookie("access_token")
+	if err != nil || accessToken == nil || accessToken.Value == "" {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	client := authConfig.NewClient(&oauth2.Token{AccessToken: accessToken.Value})
+	client.AutoRetry = true
+
+	user, err := client.CurrentUser()
+	if err != nil {
+		logrus.Errorf("failed to get current user: %s", err)
+		sendStatusResponse(
+			statusResponse{"error", "failed to get current user"},
+			http.StatusInternalServerError,
+			w,
+		)
+		return
+	}
+
+	rawPlaylists, err := listPlaylists(user.ID, client)
+	if err != nil {
+		logrus.Errorf("failed to get user playlists: %s", err)
+		sendStatusResponse(
+			statusResponse{"error", "failed to get user playlists"},
+			http.StatusInternalServerError,
+			w,
+		)
+		return
+	}
+
+	var playlists []PlaylistInfo
+	for _, p := range rawPlaylists {
+		name := p.Name
+		if len(p.Name) > 18 {
+			name = name[0:15] + "..."
+		}
+		playlists = append(playlists, PlaylistInfo{p.ID.String(), name, p.Images})
+	}
+
+	body, err := json.Marshal(playlists)
+	w.Write(body)
+}
+
+//func handleShufflePlaylist(w http.ResponseWriter, r *http.Request) {
+//	accessToken, err := r.Cookie("access_token")
+//	if err != nil || accessToken == nil || accessToken.Value == "" {
+//		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+//		return
+//	}
+//
+//	client := authConfig.NewClient(&oauth2.Token{AccessToken: accessToken.Value})
+//	client.AutoRetry = true
+//
+//	decoder := json.NewDecoder(r.Body)
+//	var playlistIDs []string
+//	err = decoder.Decode(&playlistIDs)
+//	if err != nil {
+//		logrus.Errorf("failed to decode request: %s", err)
+//		sendStatusResponse(
+//			statusResponse{"error", "failed to decode request"},
+//			http.StatusInternalServerError,
+//			w,
+//		)
+//		return
+//	}
+//
+//	for _, id := range playlistIDs {
+//		playlist, err := client.GetPlaylist(spotify.ID(id))
+//		if err != nil {
+//			logrus.Errorf("failed to get playlist: %s", err)
+//			sendStatusResponse(
+//				statusResponse{"error", "failed to get playlist"},
+//				http.StatusInternalServerError,
+//				w,
+//			)
+//			return
+//		}
+//
+//	}
+//}
+
 // Spotify Functions
 
 func addTracksToPlaylist(trackIDs []spotify.ID, playlist *spotify.FullPlaylist, client spotify.Client, ) error {
@@ -247,6 +345,27 @@ func getTopTracksForArists(artists []spotify.FullArtist, maxTracks int64, client
 		playlistTracks = append(playlistTracks, tracks...)
 	}
 	return playlistTracks, nil
+}
+
+func listPlaylists(userID string, client spotify.Client) ([]spotify.SimplePlaylist, error) {
+	var playlists []spotify.SimplePlaylist
+	offset := 0
+	for {
+		limit := 50
+		p, err := client.GetPlaylistsForUserOpt(userID, &spotify.Options{Limit: &limit, Offset: &offset})
+		if err != nil {
+			return nil, err
+		}
+
+		playlists = append(playlists, p.Playlists...)
+		offset += 50
+
+		if len(p.Playlists) < 50 {
+			break
+		}
+	}
+
+	return playlists, nil
 }
 
 func getFollowedArtists(client spotify.Client) ([]spotify.FullArtist, error) {

@@ -19,6 +19,7 @@
             <div class="header clearfix">
                 <nav>
                     <ul class="nav nav-pills float-right">
+                        <!-- Drop Down -->
                         <div class="dropdown nav-item">
                             <button class="nav-link btn" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Tools
@@ -27,9 +28,13 @@
                                 <a class="dropdown-item" href="/tool/follow-playlist">Followed Artists Playlist</a>
                             </div>
                         </div>
+
+                        <!-- About -->
                         <li class="nav-item">
                             <a class="nav-link" href="/about">About</a>
                         </li>
+
+                        <!-- Log In -->
                         <li class="nav-item">
                             <a class="nav-link active btn-success" href="#" id="login">Log Out</a>
                         </li>
@@ -54,23 +59,6 @@
             crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.0/dist/jquery.validate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
-    <script>
-        (function() {
-            if (Cookies.get("access_token") === undefined) {
-                console.log('Setting as login');
-                $('#login').text("Log In");
-                document.getElementById('login').addEventListener('click', function () {
-                    window.location.replace("/login");
-                })
-            } else {
-                console.log('Setting as logout');
-                $('#login').text("Log Out");
-                document.getElementById('login').addEventListener('click', function () {
-                    Cookies.set("access_token", "", { expires: -1 });
-                    window.location.replace("/");
-                })
-            }
-        })();
-    </script>
+    <script src="/public/scripts/login_redirect.js"></script>
 </body>
 </html>
